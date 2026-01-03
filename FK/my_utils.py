@@ -1,4 +1,4 @@
-from os import path, mkdir
+from os import path, makedirs
 from datetime import date
 from typing import Dict, List
 dzien = date.today().strftime(r"%d-%m-%Y")
@@ -32,4 +32,4 @@ slownik_modeli = {
 
 wyniki = path.join("wyniki", dzien) 
 if not path.exists(wyniki):
-    mkdir(wyniki)
+    makedirs(wyniki)
