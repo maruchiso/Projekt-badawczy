@@ -27,7 +27,7 @@ from sahi.postprocess.combine import (
     PostprocessPredictions,
 )
 from sahi.prediction import ObjectPrediction, PredictionResult
-from sahi.slicing import slice_image
+from sahi.slicing import slice_image_edges, slice_image
 from sahi.utils.coco import Coco, CocoImage
 from sahi.utils.cv import (
     IMAGE_EXTENSIONS,
@@ -40,6 +40,7 @@ from sahi.utils.cv import (
 )
 from sahi.utils.file import Path, increment_path, list_files, save_json, save_pickle
 from sahi.utils.import_utils import check_requirements
+import FK.my_utils as my_utils
 
 POSTPROCESS_NAME_TO_CLASS = {
     "GREEDYNMM": GreedyNMMPostprocess,
@@ -202,16 +203,30 @@ def get_sliced_prediction(
     num_batch = 1
     # create slices from full image
     time_start = time.time()
-    slice_image_result = slice_image(
-        image=image,
-        output_file_name=slice_export_prefix,
-        output_dir=slice_dir,
-        slice_height=slice_height,
-        slice_width=slice_width,
-        overlap_height_ratio=overlap_height_ratio,
-        overlap_width_ratio=overlap_width_ratio,
-        auto_slice_resolution=auto_slice_resolution,
-    )
+
+    slice_image_result = None
+    if my_utils.filtruj_puste_wycinki == True:
+        slice_image_result = slice_image_edges(
+            image=image,
+            output_file_name=slice_export_prefix,
+            output_dir=slice_dir,
+            slice_height=slice_height,
+            slice_width=slice_width,
+            overlap_height_ratio=overlap_height_ratio,
+            overlap_width_ratio=overlap_width_ratio,
+            auto_slice_resolution=auto_slice_resolution,
+        )
+    else:
+        slice_image_result = slice_image(
+            image=image,
+            output_file_name=slice_export_prefix,
+            output_dir=slice_dir,
+            slice_height=slice_height,
+            slice_width=slice_width,
+            overlap_height_ratio=overlap_height_ratio,
+            overlap_width_ratio=overlap_width_ratio,
+            auto_slice_resolution=auto_slice_resolution,
+        )
 
     num_slices = len(slice_image_result)
     time_end = time.time() - time_start
@@ -288,12 +303,12 @@ def get_sliced_prediction(
     if verbose == 2:
         print(
             "Slicing performed in",
-            durations_in_seconds["slice"],
+            round(durations_in_seconds["slice"], 3),
             "seconds.",
         )
         print(
             "Prediction performed in",
-            durations_in_seconds["prediction"],
+            round(durations_in_seconds["prediction"], 3),
             "seconds.",
         )
 

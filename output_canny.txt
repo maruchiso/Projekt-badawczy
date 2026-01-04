@@ -22,3 +22,11 @@ nakladanie:
 0.25
 filtrowanie:
 True, canny th1: 700, canny th2: 700
+2026-01-03 13:07:48.227492
+C:\Users\marcin\Desktop\SAHI_FK\FK\models\soda_n_final.pt SODA-D/Annotations/test_eval.json SODA-D/test/images conf_th: 0.05
+podzial:
+8
+nakladanie:
+0.25
+filtrowanie:
+True, canny th1: 700, canny th2: 700

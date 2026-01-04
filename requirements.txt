@@ -8,5 +8,8 @@ fire
 terminaltables
 requests
 click
-cv2
+opencv-python<=4.10.0.84
 globox
+torch
+torchvision
+ultralytics

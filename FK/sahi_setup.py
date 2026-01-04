@@ -1,7 +1,7 @@
 from sahi import AutoDetectionModel 
 from sahi.predict import get_sliced_prediction
 from sahi.prediction import PredictionResult 
-import my_utils
+import FK.my_utils as my_utils
 from my_utils import path
 from PIL import Image
 import time
@@ -35,7 +35,7 @@ def sahi_fun(nazwa = "Neapol",
     
     # sciezka do aktualnego zdjecia
     if doslowna_sciezka: sciezka_zdjecia = nazwa
-    else: sciezka_zdjecia = path.join(my_utils.zdjecia, str(nazwa) + ".jpg")
+    else: sciezka_zdjecia = path.join(my_utils.zdjecia, str(nazwa) + my_utils.imgExtension)
 
     # policz rozmiar wycinka
     if(auto_rozmiar): szerokosc, wysokosc = policz_rozmiar_wycinkow(sciezka_zdjecia, podzial)
@@ -48,7 +48,7 @@ def sahi_fun(nazwa = "Neapol",
         my_utils.nr_zdj += 1
         nazwa = my_utils.nr_zdj
     nazwa_pliku = nowa_nazwa(nazwa, liczba_obiektow, model_nazwa, NMS, czas, komentarz)
-    # print(nazwa_pliku)
+    print(nazwa_pliku)
 
     if(zapisz): zapisz_zdjecie(result, nazwa_pliku, etykiety)
 

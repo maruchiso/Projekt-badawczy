@@ -1,0 +1,55 @@
+Metadata-Version: 2.4
+Name: sahi
+Version: 0.11.20
+Summary: A vision library for performing sliced inference on large images/small objects
+Home-page: https://github.com/obss/sahi
+Author: OBSS
+License: MIT
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: opencv-python<=4.10.0.84
+Requires-Dist: shapely>=2.0.0
+Requires-Dist: tqdm>=4.48.2
+Requires-Dist: pillow>=8.2.0
+Requires-Dist: pybboxes==0.1.6
+Requires-Dist: pyyaml
+Requires-Dist: fire
+Requires-Dist: terminaltables
+Requires-Dist: requests
+Requires-Dist: click
+Requires-Dist: opencv-python<=4.10.0.84
+Requires-Dist: globox
+Provides-Extra: tests
+Requires-Dist: mmdet==3.0.0; extra == "tests"
+Requires-Dist: pycocotools==2.0.6; extra == "tests"
+Provides-Extra: dev
+Requires-Dist: black==22.3.0; extra == "dev"
+Requires-Dist: flake8==3.9.2; extra == "dev"
+Requires-Dist: importlib-metadata<4.3,>=1.1.0; python_version < "3.8" and extra == "dev"
+Requires-Dist: isort==5.9.2; extra == "dev"
+Requires-Dist: jupyterlab==3.0.14; extra == "dev"
+Dynamic: author
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+Wariant algorytmu SAHI, który skraca czas analizy zdjęcia, dzięki użyciu metody Filtrowania Krawędzi (FK).
