@@ -1,22 +1,42 @@
 Wariant algorytmu SAHI, który skraca czas analizy zdjęcia, dzięki użyciu metody Filtrowania Krawędzi (FK).
 
-1. Clone repo
-    git clone <REPO_URL>
-    cd SAHI_FK
+## Instalacja
 
-2. Create venv
-    python -m venv venv
-    Windows - venv\Scripts\activate
-    Linux - source venv/bin/activate
+### 1. Klonowanie repozytorium
+```bash
+git clone <REPO_URL>
+cd SAHI_FK
+```
 
-3. Upgrade pip
-    pip install --upgrade pip
+### 2. Create venv
+```bash
+python -m venv venv
+```
+Windows:
+```bash
+venv\Scripts\activate
+```
+Linux/MacOS:
+```bash
+Linux - source venv/bin/activate
+```
 
-4. Install depedencies
-    pip install -r requirements.txt
+### 3. Upgrade pip
+```bash
+pip install --upgrade pip
+```
 
-5. Install local SAHI package
-    pip install -e .
+### 4. Install depedencies
+```bash
+pip install -r requirements.txt
+```
 
-6. Run example
-    python FK/test.py
+### 5. Install local SAHI package
+```bash
+pip install -e .
+```
+
+### 6. Run example
+```bash
+python FK/test.py
+```
