@@ -417,6 +417,33 @@ def slice_image(
 
     return sliced_image_result
 
+def rect_sum(
+        ii: np.ndarray,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int
+) -> int:
+    '''
+    Compute the sum of pixel values inside a rectangular region using an integral image.
+    
+    :param ii: integral image computed from binary edge image. Shape: (H + 1, W + 1)
+    :type ii: np.ndarray
+    :param x1: X coordinate of the top-left corner of the rectangle.
+    :type x1: int
+    :param y1: Y coordinate of the top-left corner of the rectangle.
+    :type y1: int
+    :param x2: X coordinate of the bottom-right corner of the rectangle.
+    :type x2: int
+    :param y2: Y coordinate of the bottom-right corner of the rectangle.
+    :type y2: int
+    :return: Sum of pixel values inside the given rectangle.
+    :rtype: int
+    '''
+    return (
+        ii[y2 + 1, x2 + 1] - ii[y1, x2 + 1] - ii[y2 + 1, x1] + ii[y1, x1]
+    )
+
 def slice_image_edges(
     image: Union[str, Image.Image],
     coco_annotation_list: Optional[List[CocoAnnotation]] = None,
@@ -507,6 +534,17 @@ def slice_image_edges(
     sliced_image_result = SliceImageResult(original_image_size=[image_height, image_width], image_dir=output_dir)
 
     image_pil_arr = np.asarray(image_pil)
+
+    # INTEGRAL IMAGE FK
+    integral = None
+
+    if my_utils.fk_mode == "integral":
+        gray = cv2.cvtColor(image_pil_arr, cv2.COLOR_BGR2GRAY)
+
+        edges = cv2.Canny(gray, my_utils.canny_th1, my_utils.canny_th2)
+        edges_bin = (edges > 0).astype(np.uint8)
+        integral = cv2.integral(edges_bin)
+    
     # iterate over slices
     for slice_bbox in slice_bboxes:
         n_ims += 1
@@ -518,45 +556,56 @@ def slice_image_edges(
         bry = slice_bbox[3]
         image_pil_slice = image_pil_arr[tly:bry, tlx:brx]
 
-        # Get edges of the slice
-        edges = cv2.Canny(image_pil_slice,my_utils.canny_th1,my_utils.canny_th2,3)
+        keep_slice = True
+        if keep_slice:
+            # Original (Canny per slice)
+            if my_utils.fk_mode == "slice":
+                # Get edges of the slice
+                edges = cv2.Canny(image_pil_slice,my_utils.canny_th1,my_utils.canny_th2,3)
+                # Check if edges make up more than set edge threshold
+                keep_slice = cv2.countNonZero(edges) > my_utils.edgeThreshold
 
-        # Check if edges make up more than set edge threshold
-        if cv2.countNonZero(edges) > my_utils.edgeThreshold:
+            # Integral image
+            elif my_utils.fk_mode == "integral":
+                edge_count = rect_sum(integral, tlx, tly, brx - 1, bry - 1)
+                keep_slice = edge_count > my_utils.edgeThreshold
 
-            wybrane_wyc += 1
+        if not keep_slice:
+            continue
 
-            # set image file suffixes
-            slice_suffixes = "_".join(map(str, slice_bbox))
-            if out_ext:
-                suffix = out_ext
-            elif hasattr(image_pil, "filename"):
-                suffix = Path(getattr(image_pil, "filename")).suffix
-                if suffix in IMAGE_EXTENSIONS_LOSSY:
-                    suffix = ".png"
-                elif suffix in IMAGE_EXTENSIONS_LOSSLESS:
-                    suffix = Path(image_pil.filename).suffix
-            else:
+        wybrane_wyc += 1
+
+        # set image file suffixes
+        slice_suffixes = "_".join(map(str, slice_bbox))
+        if out_ext:
+            suffix = out_ext
+        elif hasattr(image_pil, "filename"):
+            suffix = Path(getattr(image_pil, "filename")).suffix
+            if suffix in IMAGE_EXTENSIONS_LOSSY:
                 suffix = ".png"
+            elif suffix in IMAGE_EXTENSIONS_LOSSLESS:
+                suffix = Path(image_pil.filename).suffix
+        else:
+            suffix = ".png"
 
-            # set image file name and path
-            slice_file_name = f"{output_file_name}_{slice_suffixes}{suffix}"
+        # set image file name and path
+        slice_file_name = f"{output_file_name}_{slice_suffixes}{suffix}"
 
-            # create coco image
-            slice_width = slice_bbox[2] - slice_bbox[0]
-            slice_height = slice_bbox[3] - slice_bbox[1]
-            coco_image = CocoImage(file_name=slice_file_name, height=slice_height, width=slice_width)
+        # create coco image
+        slice_width = slice_bbox[2] - slice_bbox[0]
+        slice_height = slice_bbox[3] - slice_bbox[1]
+        coco_image = CocoImage(file_name=slice_file_name, height=slice_height, width=slice_width)
 
-            # append coco annotations (if present) to coco image
-            if coco_annotation_list is not None:
-                for sliced_coco_annotation in process_coco_annotations(coco_annotation_list, slice_bbox, min_area_ratio):
-                    coco_image.add_annotation(sliced_coco_annotation)
+        # append coco annotations (if present) to coco image
+        if coco_annotation_list is not None:
+            for sliced_coco_annotation in process_coco_annotations(coco_annotation_list, slice_bbox, min_area_ratio):
+                coco_image.add_annotation(sliced_coco_annotation)
 
-            # create sliced image and append to sliced_image_result
-            sliced_image = SlicedImage(
-                image=image_pil_slice, coco_image=coco_image, starting_pixel=[slice_bbox[0], slice_bbox[1]]
-            )
-            sliced_image_result.add_sliced_image(sliced_image)
+        # create sliced image and append to sliced_image_result
+        sliced_image = SlicedImage(
+            image=image_pil_slice, coco_image=coco_image, starting_pixel=[slice_bbox[0], slice_bbox[1]]
+        )
+        sliced_image_result.add_sliced_image(sliced_image)
     
     my_utils.liczba_wycinkow += len(slice_bboxes)
     my_utils.pozostale_wyc += wybrane_wyc

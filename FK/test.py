@@ -2,6 +2,7 @@ import FK.my_utils as my_utils
 from sahi_setup import sahi_fun
 
 my_utils.filtruj_puste_wycinki = True
+my_utils.fk_mode = "integral"
 my_utils.canny_th1 = 300
 my_utils.canny_th2 = 400
 my_utils.podzial = 6   
