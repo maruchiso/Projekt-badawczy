@@ -20,7 +20,7 @@ from sahi.utils.coco import Coco, CocoAnnotation, CocoImage, create_coco_dict
 from sahi.utils.cv import IMAGE_EXTENSIONS_LOSSLESS, IMAGE_EXTENSIONS_LOSSY, read_image_as_pil
 from sahi.utils.file import load_json, save_json
 
-import my_utils
+import FK.my_utils as my_utils
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -521,8 +521,8 @@ def slice_image_edges(
         # Get edges of the slice
         edges = cv2.Canny(image_pil_slice,my_utils.canny_th1,my_utils.canny_th2,3)
 
-        # Check if edges make up more than 100 pixels
-        if cv2.countNonZero(edges) > 100:
+        # Check if edges make up more than set edge threshold
+        if cv2.countNonZero(edges) > my_utils.edgeThreshold:
 
             wybrane_wyc += 1
 

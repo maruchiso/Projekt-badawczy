@@ -1,5 +1,5 @@
 from sahi.predict import get_sliced_prediction
-import my_utils
+import FK.my_utils as my_utils
 from PIL import Image
 import time
 

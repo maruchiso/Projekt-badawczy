@@ -14,8 +14,10 @@ podzial: int = 6
 nakladanie: float = 0.4
 canny_th1: int = 300
 canny_th2: int = 400
+edgeThreshold: int = 300
 
-zdjecia = path.join( "zdjecia")
+zdjecia = path.join("zdjecia")
+imgExtension = ".jpg"
 
 slownik_modeli = {
   "8n":  path.join("models", "yolov8n.pt"),
