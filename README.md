@@ -18,7 +18,7 @@ venv\Scripts\activate
 ```
 Linux/MacOS:
 ```bash
-Linux - source venv/bin/activate
+source venv/bin/activate
 ```
 
 ### 3. Upgrade pip
