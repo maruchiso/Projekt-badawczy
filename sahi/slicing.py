@@ -530,6 +530,11 @@ def slice_image_edges(
     n_ims = 0
     wybrane_wyc = 0
 
+    # reset slice tracking
+    my_utils.all_slice_bboxes = []
+    my_utils.kept_slice_bboxes = []
+    my_utils.rejected_slice_bboxes = []
+
     # init images and annotations lists
     sliced_image_result = SliceImageResult(original_image_size=[image_height, image_width], image_dir=output_dir)
 
@@ -548,6 +553,7 @@ def slice_image_edges(
     # iterate over slices
     for slice_bbox in slice_bboxes:
         n_ims += 1
+        my_utils.all_slice_bboxes.append(slice_bbox)
 
         # extract image
         tlx = slice_bbox[0]
@@ -571,8 +577,10 @@ def slice_image_edges(
                 keep_slice = edge_count > my_utils.edgeThreshold
 
         if not keep_slice:
+            my_utils.rejected_slice_bboxes.append(slice_bbox)
             continue
-
+        
+        my_utils.kept_slice_bboxes.append(slice_bbox)
         wybrane_wyc += 1
 
         # set image file suffixes

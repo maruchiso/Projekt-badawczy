@@ -37,3 +37,7 @@ slownik_modeli = {
 wyniki = path.join("wyniki", dzien) 
 if not path.exists(wyniki):
     makedirs(wyniki)
+
+all_slice_bboxes = []
+kept_slice_bboxes = []
+rejected_slice_bboxes = []
