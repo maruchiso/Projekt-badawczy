@@ -151,6 +151,8 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="0 = wszystkie, albo np. 2000")
     ap.add_argument("--out", default="eval_testset_results.json", help="Plik wynikowy JSON")
     ap.add_argument("--edge", type=int, default=300, help="FK edgeThreshold")
+    ap.add_argument("--mode", choices=["full", "fk", "both"], default="both")
+    ap.add_argument("--baseline", default=None)
     args = ap.parse_args()
 
     coco_gt = COCO(args.ann)
@@ -174,6 +176,19 @@ def main():
     img_ids = coco_gt.getImgIds()
     if args.limit and args.limit > 0:
         img_ids = img_ids[:args.limit]
+    
+    baseline_full = None
+    baseline_time = None
+
+    if args.mode == "fk":
+        if args.baseline is None:
+            raise ValueError("FK mode requires --baseline")
+        
+        with open(args.baseline) as f:
+            b = json.load(f)
+        
+        baseline_full = b["dets_full"]
+        baseline_time = b["times_full"]
 
     # mapowanie kategorii
     cat_ids = coco_gt.getCatIds()
@@ -228,137 +243,149 @@ def main():
         tile_counts["gt_objects_total"] += len(gt_boxes)
 
         # ---------- FULL ----------
-        my_utils.filtruj_puste_wycinki = False
+        if args.mode in ["both", "full"]:
 
-        # reset slice tracking
-        my_utils.all_slice_bboxes = []
-        my_utils.kept_slice_bboxes = []
-        my_utils.rejected_slice_bboxes = []
+            my_utils.filtruj_puste_wycinki = False
 
-        t0 = time.time()
-        res_full = sahi_fun(
-            nazwa=stem,
-            auto_rozmiar=True,
-            podzial=PODZIAL,
-            nakladanie=OVERLAP,
-            model=args.model,
-            zapisz=False,
-            doslowna_sciezka=False,
-            full_prediction=True
-        )
-        t_full = time.time() - t0
+            my_utils.all_slice_bboxes = []
+            my_utils.kept_slice_bboxes = []
+            my_utils.rejected_slice_bboxes = []
 
-        times_full.append(t_full)
+            t0 = time.time()
+            res_full = sahi_fun(
+                nazwa=stem,
+                auto_rozmiar=True,
+                podzial=PODZIAL,
+                nakladanie=OVERLAP,
+                model=args.model,
+                zapisz=False,
+                doslowna_sciezka=False,
+                full_prediction=True
+            )
+            t_full = time.time() - t0
 
-        # tiles FULL
-        s_full = len(getattr(my_utils, "all_slice_bboxes", []))
-        slices_full.append(s_full)
-
-        # dets FULL (tylko dla tego obrazu)
-        dets_full.extend(
-            sahi_result_to_coco_dets(res_full, image_id)
-        )
+            times_full.append(t_full)
+            dets_full.extend(
+                sahi_result_to_coco_dets(res_full, image_id)
+            )
 
         # ---------- FK ----------
-        my_utils.filtruj_puste_wycinki = True
+        if args.mode in ["both", "fk"]:
+            my_utils.filtruj_puste_wycinki = True
 
-        # wyczyść listy bboxów na obraz
-        my_utils.all_slice_bboxes = []
-        my_utils.kept_slice_bboxes = []
-        my_utils.rejected_slice_bboxes = []
+            # wyczyść listy bboxów na obraz
+            my_utils.all_slice_bboxes = []
+            my_utils.kept_slice_bboxes = []
+            my_utils.rejected_slice_bboxes = []
 
-        t0 = time.time()
-        res_fk = sahi_fun(
-            nazwa=stem,
-            auto_rozmiar=True,
-            podzial=PODZIAL,
-            nakladanie=OVERLAP,
-            model=args.model,
-            zapisz=False,
-            doslowna_sciezka=False,
-            full_prediction=True
-        )
-        t_fk = time.time() - t0
+            t0 = time.time()
+            res_fk = sahi_fun(
+                nazwa=stem,
+                auto_rozmiar=True,
+                podzial=PODZIAL,
+                nakladanie=OVERLAP,
+                model=args.model,
+                zapisz=False,
+                doslowna_sciezka=False,
+                full_prediction=True
+            )
+            t_fk = time.time() - t0
 
-        times_fk.append(t_fk)
+            times_fk.append(t_fk)
 
-        dets_fk.extend(
-            sahi_result_to_coco_dets(res_fk, image_id)
-        )
+            dets_fk.extend(
+                sahi_result_to_coco_dets(res_fk, image_id)
+            )
 
         # kafelki FK
-        all_s = my_utils.all_slice_bboxes
-        kept_s = my_utils.kept_slice_bboxes
-        rej_s = my_utils.rejected_slice_bboxes
+        # kafelki FK – TYLKO jeśli FK był liczony
+        if args.mode in ["both", "fk"]:
 
-        slices_total_fk.append(len(all_s))
-        slices_fk.append(len(kept_s))
+            all_s = my_utils.all_slice_bboxes
+            kept_s = my_utils.kept_slice_bboxes
+            rej_s = my_utils.rejected_slice_bboxes
 
-        # metryki kafelków (agregacja zliczeń)
-        c = compute_tile_metrics_counts(gt_boxes, all_s, kept_s, rej_s)
-        for k in ["total_empty", "total_with_obj", "empty_rejected", "with_obj_rejected", "total_rejected"]:
-            tile_counts[k] += c[k]
+            slices_total_fk.append(len(all_s))
+            slices_fk.append(len(kept_s))
 
-        # utrata obiektów przez filtr
-        tile_counts["gt_objects_lost_by_filter"] += compute_object_loss_count(gt_boxes, kept_s)
+            c = compute_tile_metrics_counts(gt_boxes, all_s, kept_s, rej_s)
+            for k in ["total_empty", "total_with_obj", "empty_rejected", "with_obj_rejected", "total_rejected"]:
+                tile_counts[k] += c[k]
+
+            tile_counts["gt_objects_lost_by_filter"] += compute_object_loss_count(gt_boxes, kept_s)
 
         if idx % 50 == 0 or idx == len(img_ids):
             print(f"[{idx}/{len(img_ids)}] processed...")
 
+    if args.mode == "fk":
+        print("Using FULL baseline from:", args.baseline)
+        dets_full = baseline_full
+        times_full = baseline_time
     # =========================
     # COCO METRYKI (FULL vs FK)
     # =========================
 
-    # AP@[.5:.95] i AR@500 (średnie po IoU 0.5..0.95)
-    coco_full = run_coco_eval(
-        coco_gt,
-        dets_full,
-        img_ids,
-        max_dets_list=(1,10,100)
-    )
+    coco_full = None
+    coco_fk = None
+    coco_full_ar500 = None
+    coco_fk_ar500 = None
+    coco_full_ar50 = None
+    coco_fk_ar50 = None
 
-    coco_fk = run_coco_eval(
-        coco_gt,
-        dets_fk,
-        img_ids,
-        max_dets_list=(1,10,100)
-    )
+    if len(dets_full):
+        coco_full = run_coco_eval(
+            coco_gt,
+            dets_full,
+            img_ids,
+            max_dets_list=(1,10,100)
+        )
 
-    # AR@0.5@500 (jedno IoU = 0.5)
-    coco_full_ar500 = run_coco_eval(
-        coco_gt,
-        dets_full,
-        img_ids,
-        max_dets_list=(1,10,500)
-    )
+        coco_full_ar500 = run_coco_eval(
+            coco_gt,
+            dets_full,
+            img_ids,
+            max_dets_list=(1,10,500)
+        )
 
-    coco_fk_ar500 = run_coco_eval(
-        coco_gt,
-        dets_fk,
-        img_ids,
-        max_dets_list=(1,10,500)
-    )
-    coco_full_ar50 = run_coco_eval(
-        coco_gt,
-        dets_full,
-        img_ids,
-        max_dets_list=(1,10,500),
-        iou_thrs=[0.5]
-    )
+        coco_full_ar50 = run_coco_eval(
+            coco_gt,
+            dets_full,
+            img_ids,
+            max_dets_list=(1,10,500),
+            iou_thrs=[0.5]
+        )
 
-    coco_fk_ar50 = run_coco_eval(
-        coco_gt,
-        dets_fk,
-        img_ids,
-        max_dets_list=(1,10,500),
-        iou_thrs=[0.5]
-    )
+    if len(dets_fk):
+        coco_fk = run_coco_eval(
+            coco_gt,
+            dets_fk,
+            img_ids,
+            max_dets_list=(1,10,100)
+        )
+
+        coco_fk_ar500 = run_coco_eval(
+            coco_gt,
+            dets_fk,
+            img_ids,
+            max_dets_list=(1,10,500)
+        )
+
+        coco_fk_ar50 = run_coco_eval(
+            coco_gt,
+            dets_fk,
+            img_ids,
+            max_dets_list=(1,10,500),
+            iou_thrs=[0.5]
+        )
 
     # =========================
     # Statystyki czasu / kafelków
     # =========================
 
     def stats(x):
+        if len(x) == 0:
+            return {"mean": None, "p50": None, "p95": None}
+
         x = np.array(x, dtype=np.float64)
         return {
             "mean": float(np.mean(x)),
@@ -371,8 +398,8 @@ def main():
 
     # FULL slice stats - jeśli s_full=0 bo nie zapisujesz list bboxów dla FULL, to tu będzie 0.
     slice_stats_full = stats(slices_full) if np.sum(slices_full) > 0 else {"mean": None, "p50": None, "p95": None}
-    slice_stats_fk = stats(slices_fk)
-    slice_total_stats_fk = stats(slices_total_fk)
+    slice_stats_fk = stats(slices_fk) if len(slices_fk) else {"mean": None, "p50": None, "p95": None}
+    slice_total_stats_fk = stats(slices_total_fk) if len(slices_total_fk) else {"mean": None, "p50": None, "p95": None}
 
     # % odrzucenia kafelków (FK)
     total_before = float(np.sum(slices_total_fk))
@@ -398,10 +425,10 @@ def main():
 
         "coco_full": coco_full,
         "coco_fk": coco_fk,
-        "AR@500_full": coco_full_ar500["AR"],
-        "AR@500_fk": coco_fk_ar500["AR"],
-        "AR@0.5@500_full": coco_full_ar50["AR"],
-        "AR@0.5@500_fk": coco_fk_ar50["AR"],
+        "AR@500_full": coco_full_ar500["AR"] if coco_full_ar500 else None,
+        "AR@500_fk": coco_fk_ar500["AR"] if coco_fk_ar500 else None,
+        "AR@0.5@500_full": coco_full_ar50["AR"] if coco_full_ar50 else None,
+        "AR@0.5@500_fk": coco_fk_ar50["AR"] if coco_fk_ar50 else None,
         "time_full": time_stats_full,
         "time_fk": time_stats_fk,
 
@@ -417,6 +444,16 @@ def main():
             "objects_lost_due_to_filter": obj_lost_pct
         }
     }
+
+    if args.mode == "full":
+        baseline = {
+            "dets_full": dets_full,
+            "times_full": times_full
+        }
+        with open(args.out, "w") as f:
+            json.dump(baseline, f)
+        print("Saved FULL baseline:", args.out)
+        return
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
@@ -442,4 +479,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-#python FK/evaluate_testset_coco.py --ann "C:\Users\marcin\Desktop\SODA-D\annotations\test.json" --img_dir "C:\Users\marcin\Desktop\SODA-D\images" --model "soda_n_final.pt" --out "eval_test_results.json" --limit 1
+#python FK/evaluate_testset_coco.py --ann "C:\Users\marcin\Desktop\SODA-D\annotations\test.json" --img_dir "C:\Users\marcin\Desktop\SODA-D\images" --model "soda_n_final.pt" --out "eval_test_results.json" --limit 1 --edge 50
+
+###### baseline
+#python FK/evaluate_testset_coco.py --ann "C:\Users\marcin\Desktop\SODA-D\annotations\test.json" --img_dir "C:\Users\marcin\Desktop\SODA-D\images" --model "soda_n_final.pt" --out "baseline_full_1000.json" --limit 1000 --mode full
