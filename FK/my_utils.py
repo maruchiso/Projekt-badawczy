@@ -3,7 +3,9 @@ from datetime import date
 from typing import Dict, List
 dzien = date.today().strftime(r"%d-%m-%Y")
 
-
+# "slice" - oryginalna metoda Wojcieszka (Canny per wycinek)
+# "integral" - integral image
+fk_mode = "slice"
 filtruj_puste_wycinki: bool = True
 liczba_wycinkow: int = 0
 pozostale_wyc: int = 0
@@ -35,3 +37,7 @@ slownik_modeli = {
 wyniki = path.join("wyniki", dzien) 
 if not path.exists(wyniki):
     makedirs(wyniki)
+
+all_slice_bboxes = []
+kept_slice_bboxes = []
+rejected_slice_bboxes = []
